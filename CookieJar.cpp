@@ -12,7 +12,7 @@
 #define MAX_LINE_LENGTH 4096
 
 bool CookieJar::serialize(const QString& path) {
-    FILE* f = fopen(path.toAscii().constData(), "w");
+    FILE* f = fopen(path.toUtf8(), "w");
     if(f == NULL) {
         perror("fopen");
         return false;
@@ -35,7 +35,7 @@ bool CookieJar::serialize(const QString& path) {
 }
 
 bool CookieJar::deserialize(const QString& path) {
-    FILE* f = fopen(path.toAscii().constData(), "r");
+    FILE* f = fopen(path.toUtf8(), "r");
     if(f == NULL) {
         return true; // cookie jar file didn't exist - do nothing
     }
