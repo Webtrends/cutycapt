@@ -47,7 +47,7 @@
 #include <fstream>
 #include "CookieJar.hpp"
 
-#if QT_VERSION >= 0x040600
+#if QT_VERSION >= 0x040600 && 0
 #define CUTYCAPT_SCRIPT 1
 #endif
 
@@ -168,12 +168,11 @@ CutyPage::setAttribute(QWebSettings::WebAttribute option,
 }
 
 // TODO: Consider merging some of main() and CutyCap
-CutyCapt::CutyCapt(CutyPage* page, const QString& output, const QString& htmlOutput, int delay, OutputFormat format,
+CutyCapt::CutyCapt(CutyPage* page, const QString& output, int delay, OutputFormat format,
                    const QString& scriptProp, const QString& scriptCode, const QString& cookieJarPath,bool insecure, bool smooth,
-QPrinter::Orientation orientation, QPrinter::PaperSize paperSize) {				   
+QPrinter::Orientation orientation, QPrinter::PaperSize paperSize) {
   mPage = page;
   mOutput = output;
-  mHtmlOutput = htmlOutput;
   mDelay = delay;
   mInsecure = insecure;
   mSmooth = smooth;
@@ -205,7 +204,7 @@ CutyCapt::InitialLayoutCompleted() {
 
   if (mSawInitialLayout && mSawDocumentComplete)
     TryDelayedRender();
-	
+
 	if(!mCookieJarPath.isEmpty()) {
       CookieJar* cookieJar = static_cast<CookieJar*>(mPage->networkAccessManager()->cookieJar());
       bool success = cookieJar->serialize(mCookieJarPath);
@@ -214,12 +213,6 @@ CutyCapt::InitialLayoutCompleted() {
           fprintf(stderr, "fatal: unable to serialize cookies to cookie jar path\n");
           exit(1);
       }
-  }
-
-  if(!mHtmlOutput.isEmpty()) {
-      std::ofstream out(mHtmlOutput.toAscii().constData());
-      out << mPage->currentFrame()->toHtml().toAscii().constData();
-      out.close();
   }
 }
 
@@ -374,7 +367,6 @@ CaptHelp(void) {
     "  --help                         Print this help page and exit                \n"
     "  --url=<url>                    The URL to capture (http:...|file:...|...)   \n"
     "  --out=<path>                   The target file (.png|pdf|ps|svg|jpeg|...)   \n"
-	"  --html-out=<path>              The target file for the html of the page     \n"
     "  --out-format=<f>               Like extension in --out, overrides heuristic \n"
 //  "  --out-quality=<int>            Output format quality from 1 to 100          \n"
     "  --min-width=<int>              Minimal width for the image (default: 800)   \n"
@@ -402,7 +394,7 @@ CaptHelp(void) {
     "  --js-can-access-clipboard=<on|off> Script clipboard privs (default: unknown)\n"
     "  --cookie-jar=<path>            The path to the cookie jar to use when making\n"
     "                                 requests. Cookies will be read from this file\n"
-    "                                 and saved back to it after the request.      \n"	
+    "                                 and saved back to it after the request.      \n"
 #if QT_VERSION >= 0x040500
     "  --print-backgrounds=<on|off>   Backgrounds in PDF/PS output (default: off)  \n"
     "  --zoom-factor=<float>          Page zoom factor (default: no zooming)       \n"
@@ -429,7 +421,7 @@ CaptHelp(void) {
     " will be available to the script to maintain state across page loads. When the\n"
     " `expect-alert` option is specified, the shot will be taken when a script in- \n"
     " vokes alert(string) with the string if that happens before `max-wait`. These \n"
-    " options effectively allow you to remote control the browser and the web page->\n"
+    " options effectively allow you to remote control the browser and the web page.\n"
     " This an experimental and easily abused and misused feature. Use with caution.\n"
     " -----------------------------------------------------------------------------\n"
 #endif
@@ -458,12 +450,11 @@ main(int argc, char *argv[]) {
   const char* argInjectScript = NULL;
   const char* argScriptObject = NULL;
   QString argOut;
-  QString argHtmlOut;
 
   CutyCapt::OutputFormat format = CutyCapt::OtherFormat;
 
   QApplication app(argc, argv, true);
-  CutyPage* page = new CutyPage;
+  CutyPage page;
 
   QNetworkAccessManager::Operation method =
     QNetworkAccessManager::GetOperation;
@@ -507,10 +498,10 @@ main(int argc, char *argv[]) {
 
 #if CUTYCAPT_SCRIPT
     } else if (strcmp("--debug-print-alerts", s) == 0) {
-	  page->setPrintAlerts(true);
+	  page.setPrintAlerts(true);
       continue;
 #endif
-    } 
+    }
 
     value = strchr(s, '=');
 
@@ -549,8 +540,6 @@ main(int argc, char *argv[]) {
         for (int ix = 0; CutyExtMap[ix].id != CutyCapt::OtherFormat; ++ix)
           if (argOut.endsWith(CutyExtMap[ix].extension))
             format = CutyExtMap[ix].id; //, break;
-    } else if (strncmp("--html-out", s, nlen) == 0) {
-        argHtmlOut = value;
     } else if (strncmp("--user-styles", s, nlen) == 0) {
       // This option is provided for backwards-compatibility only
       argUserStyle = value;
@@ -565,32 +554,32 @@ main(int argc, char *argv[]) {
       argIconDbPath = value;
 
     } else if (strncmp("--auto-load-images", s, nlen) == 0) {
-      page->setAttribute(QWebSettings::AutoLoadImages, value);
+      page.setAttribute(QWebSettings::AutoLoadImages, value);
 
     } else if (strncmp("--javascript", s, nlen) == 0) {
-      page->setAttribute(QWebSettings::JavascriptEnabled, value);
+      page.setAttribute(QWebSettings::JavascriptEnabled, value);
 
     } else if (strncmp("--java", s, nlen) == 0) {
-      page->setAttribute(QWebSettings::JavaEnabled, value);
+      page.setAttribute(QWebSettings::JavaEnabled, value);
 
     } else if (strncmp("--plugins", s, nlen) == 0) {
-      page->setAttribute(QWebSettings::PluginsEnabled, value);
+      page.setAttribute(QWebSettings::PluginsEnabled, value);
 
     } else if (strncmp("--private-browsing", s, nlen) == 0) {
-      page->setAttribute(QWebSettings::PrivateBrowsingEnabled, value);
+      page.setAttribute(QWebSettings::PrivateBrowsingEnabled, value);
 
     } else if (strncmp("--js-can-open-windows", s, nlen) == 0) {
-      page->setAttribute(QWebSettings::JavascriptCanOpenWindows, value);
+      page.setAttribute(QWebSettings::JavascriptCanOpenWindows, value);
 
     } else if (strncmp("--js-can-access-clipboard", s, nlen) == 0) {
-      page->setAttribute(QWebSettings::JavascriptCanAccessClipboard, value);
+      page.setAttribute(QWebSettings::JavascriptCanAccessClipboard, value);
 
     } else if (strncmp("--developer-extras", s, nlen) == 0) {
-      page->setAttribute(QWebSettings::DeveloperExtrasEnabled, value);
+      page.setAttribute(QWebSettings::DeveloperExtrasEnabled, value);
 
     } else if (strncmp("--links-included-in-focus-chain", s, nlen) == 0) {
-      page->setAttribute(QWebSettings::LinksIncludedInFocusChain, value);
-	 
+      page.setAttribute(QWebSettings::LinksIncludedInFocusChain, value);
+
     } else if (strncmp("--orientation", s, nlen) == 0) {
       if (strcasecmp(value, "landscape") == 0) {
         orientation = QPrinter::Landscape;
@@ -626,24 +615,24 @@ main(int argc, char *argv[]) {
         }
 
         manager.setCookieJar(&cookieJar);
-        page->setNetworkAccessManager(&manager);	  
+        page.setNetworkAccessManager(&manager);
 
 #if QT_VERSION >= 0x040500
     } else if (strncmp("--print-backgrounds", s, nlen) == 0) {
-      page->setAttribute(QWebSettings::PrintElementBackgrounds, value);
+      page.setAttribute(QWebSettings::PrintElementBackgrounds, value);
 
     } else if (strncmp("--zoom-factor", s, nlen) == 0) {
-      page->mainFrame()->setZoomFactor(QString(value).toFloat());
+      page.mainFrame()->setZoomFactor(QString(value).toFloat());
 
     } else if (strncmp("--zoom-text-only", s, nlen) == 0) {
-      page->setAttribute(QWebSettings::ZoomTextOnly, value);
+      page.setAttribute(QWebSettings::ZoomTextOnly, value);
 
     } else if (strncmp("--http-proxy", s, nlen) == 0) {
       QUrl p = QUrl::fromEncoded(value);
       QNetworkProxy proxy = QNetworkProxy(QNetworkProxy::HttpProxy,
         p.host(), p.port(80), p.userName(), p.password());
       manager.setProxy(proxy);
-      page->setNetworkAccessManager(&manager);
+      page.setNetworkAccessManager(&manager);
 #endif
 
 #if CUTYCAPT_SCRIPT
@@ -654,7 +643,7 @@ main(int argc, char *argv[]) {
       argScriptObject = value;
 
     } else if (strncmp("--expect-alert", s, nlen) == 0) {
-      page->setAlertString(value);
+      page.setAlertString(value);
 #endif
 
     } else if (strncmp("--app-name", s, nlen) == 0) {
@@ -670,7 +659,7 @@ main(int argc, char *argv[]) {
       body = QByteArray(value);
 
     } else if (strncmp("--user-agent", s, nlen) == 0) {
-      page->setUserAgent(value);
+      page.setUserAgent(value);
 
     } else if (strncmp("--out-format", s, nlen) == 0) {
       for (int ix = 0; CutyExtMap[ix].id != CutyCapt::OtherFormat; ++ix)
@@ -703,7 +692,7 @@ main(int argc, char *argv[]) {
         method = QNetworkAccessManager::PostOperation;
       else if (strcmp("value", "head") == 0)
         method = QNetworkAccessManager::HeadOperation;
-      else 
+      else
         (void)0; // TODO: ...
 
     } else {
@@ -735,15 +724,15 @@ main(int argc, char *argv[]) {
     }
   }
 
-  CutyCapt main(page, argOut, argHtmlOut, argDelay, format, scriptProp, scriptCode, cookieJarPath,!!argInsecure, !!argSmooth,orientation,paperSize);
+  CutyCapt main(&page, argOut, argDelay, format, scriptProp, scriptCode, cookieJarPath,!!argInsecure, !!argSmooth,orientation,paperSize);
 
 
-  app.connect(page,
+  app.connect(&page,
     SIGNAL(loadFinished(bool)),
     &main,
     SLOT(DocumentComplete(bool)));
 
-  app.connect(page->mainFrame(),
+  app.connect(page.mainFrame(),
     SIGNAL(initialLayoutCompleted()),
     &main,
     SLOT(InitialLayoutCompleted()));
@@ -755,52 +744,51 @@ main(int argc, char *argv[]) {
 
   if (argUserStyle != NULL)
     // TODO: does this need any syntax checking?
-    page->settings()->setUserStyleSheetUrl( QUrl::fromEncoded(argUserStyle) );
+    page.settings()->setUserStyleSheetUrl( QUrl::fromEncoded(argUserStyle) );
 
   if (argUserStylePath != NULL) {
-    page->settings()->setUserStyleSheetUrl( QUrl::fromLocalFile(argUserStylePath) );
+    page.settings()->setUserStyleSheetUrl( QUrl::fromLocalFile(argUserStylePath) );
   }
 
   if (argUserStyleString != NULL) {
     QUrl data("data:text/css;charset=utf-8;base64," +
       QByteArray(argUserStyleString).toBase64());
-    page->settings()->setUserStyleSheetUrl( data );
+    page.settings()->setUserStyleSheetUrl( data );
   }
 
   if (argIconDbPath != NULL)
     // TODO: does this need any syntax checking?
-    page->settings()->setIconDatabasePath(argUserStyle);
+    page.settings()->setIconDatabasePath(argUserStyle);
 
   // The documentation does not say, but it seems the mainFrame
   // will never change, so we can set this here. Otherwise we'd
   // have to set this in snapshot and trigger an update, which
   // is not currently possible (Qt 4.4.0) as far as I can tell.
-  page->mainFrame()->setScrollBarPolicy(Qt::Horizontal, Qt::ScrollBarAlwaysOff);
-  page->mainFrame()->setScrollBarPolicy(Qt::Vertical, Qt::ScrollBarAlwaysOff);
-  page->setViewportSize( QSize(argMinWidth, argMinHeight) );
+  page.mainFrame()->setScrollBarPolicy(Qt::Horizontal, Qt::ScrollBarAlwaysOff);
+  page.mainFrame()->setScrollBarPolicy(Qt::Vertical, Qt::ScrollBarAlwaysOff);
+  page.setViewportSize( QSize(argMinWidth, argMinHeight) );
 
 #if CUTYCAPT_SCRIPT
   // javaScriptWindowObjectCleared does not get called on the
   // initial load unless some JavaScript has been executed.
-  page->mainFrame()->evaluateJavaScript(QString(""));
+  page.mainFrame()->evaluateJavaScript(QString(""));
 
-  app.connect(page->mainFrame(),
+  app.connect(page.mainFrame(),
     SIGNAL(javaScriptWindowObjectCleared()),
     &main,
     SLOT(JavaScriptWindowObjectCleared()));
 #endif
 
-  app.connect(page->networkAccessManager(),
+  app.connect(page.networkAccessManager(),
     SIGNAL(sslErrors(QNetworkReply*, QList<QSslError>)),
     &main,
     SLOT(handleSslErrors(QNetworkReply*, QList<QSslError>)));
 
   if (!body.isNull())
-    page->mainFrame()->load(req, method, body);
+    page.mainFrame()->load(req, method, body);
   else
-    page->mainFrame()->load(req, method);
+    page.mainFrame()->load(req, method);
 
   int status = app.exec();
-  delete page;
   return status;
 }

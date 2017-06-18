@@ -42,7 +42,6 @@ public:
 
 CutyCapt(CutyPage* page,
             const QString& output,
-           const QString& htmlOutput,
             int delay,
             OutputFormat format,
             const QString& scriptProp,
@@ -53,7 +52,7 @@ CutyCapt(CutyPage* page,
            QPrinter::Orientation orientation,
            QPrinter::PaperSize paperSize);
 
-  ~CutyCapt();		   
+  ~CutyCapt();
 
 private slots:
   void DocumentComplete(bool ok);
@@ -71,7 +70,6 @@ private:
 
 protected:
   QString      mOutput;
-  QString      mHtmlOutput;
   int          mDelay;
   CutyPage*    mPage;
   OutputFormat mFormat;
